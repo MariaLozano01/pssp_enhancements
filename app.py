@@ -7,9 +7,10 @@ import uuid
 
 load_dotenv()
 
-mysql_username = os.getenv("MYSQL_USERNAME")
+mysql_username = os.getenv("MYSQL_USER")
 mysql_password = os.getenv("MYSQL_PASSWORD")
-mysql_host = os.getenv("MYSQL_HOST")
+mysql_host = os.getenv("MYSQL_HOSTNAME")
+mysql_database = os.getenv("MYSQL_DATABASE")
 
 db = SQLAlchemy()
 app = Flask(__name__)
@@ -19,7 +20,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqldb://' + mysql_username + ':
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'sdf#$#dfjkhdf0SDJH0df9fd98343fdfu34rf'
 
-db.init_app(app)
+db.init_app(app) 
 
 ### Models ###
 class Users(db.Model):
@@ -58,7 +59,7 @@ class Users(db.Model):
 
 
 class Patients(db.Model):
-    __tablename__ = 'production_patients'
+    __tablename__ = 'patients'
 
     id = db.Column(db.Integer, primary_key=True)
     mrn = db.Column(db.String(255))
@@ -68,10 +69,9 @@ class Patients(db.Model):
     dob = db.Column(db.String(255), nullable=True)
     gender = db.Column(db.String(255), nullable=True)
     contact_mobile = db.Column(db.String(255), nullable=True)
-    contact_home = db.Column(db.String(255), nullable=True)
 
     # this first function __init__ is to establish the class for python GUI
-    def __init__(self, mrn, first_name, last_name, zip_code, dob, gender, contact_mobile, contact_home):
+    def __init__(self, mrn, first_name, last_name, zip_code, dob, gender, contact_mobile):
         self.mrn = mrn
         self.first_name = first_name
         self.last_name = last_name
@@ -79,7 +79,6 @@ class Patients(db.Model):
         self.dob = dob
         self.gender = gender
         self.contact_mobile = contact_mobile
-        self.contact_home = contact_home
 
 
     # this second function is for the API endpoints to return JSON 
@@ -93,15 +92,14 @@ class Patients(db.Model):
             'dob': self.dob,
             'gender': self.gender,
             'contact_mobile': self.contact_mobile,
-            'contact_home': self.contact_home
         }
 
 class Conditions_patient(db.Model):
-    __tablename__ = 'production_patient_conditions'
+    __tablename__ = 'patient_conditions'
 
     id = db.Column(db.Integer, primary_key=True)
-    mrn = db.Column(db.String(255), db.ForeignKey('production_patients.mrn'))
-    icd10_code = db.Column(db.String(255), db.ForeignKey('production_conditions.icd10_code'))
+    mrn = db.Column(db.String(255), db.ForeignKey('patients.mrn'))
+    icd10_code = db.Column(db.String(255), db.ForeignKey('conditions.icd10_code'))
 
     # this first function __init__ is to establish the class for python GUI
     def __init__(self, mrn, icd10_code):
@@ -117,7 +115,7 @@ class Conditions_patient(db.Model):
         }
 
 class Conditions(db.Model):
-    __tablename__ = 'production_conditions'
+    __tablename__ = 'conditions'
 
     id = db.Column(db.Integer, primary_key=True)
     icd10_code = db.Column(db.String(255))
@@ -137,11 +135,11 @@ class Conditions(db.Model):
         }
 
 class Medications_patient(db.Model):
-    __tablename__ = 'production_patient_medications'
+    __tablename__ = 'patient_medications'
 
     id = db.Column(db.Integer, primary_key=True)
-    mrn = db.Column(db.String(255), db.ForeignKey('production_patients.mrn'))
-    med_ndc = db.Column(db.String(255), db.ForeignKey('production_medications.med_ndc'))
+    mrn = db.Column(db.String(255), db.ForeignKey('patients.mrn'))
+    med_ndc = db.Column(db.String(255), db.ForeignKey('medications.med_ndc'))
 
     # this first function __init__ is to establish the class for python GUI
     def __init__(self, mrn, med_ndc):
@@ -157,7 +155,7 @@ class Medications_patient(db.Model):
         }
     
 class Medications(db.Model):
-    __tablename__ = 'production_medications'
+    __tablename__ = 'medications'
 
     id = db.Column(db.Integer, primary_key=True)
     med_ndc = db.Column(db.String(255))
@@ -181,7 +179,7 @@ class Medications(db.Model):
 #### BASIC ROUTES WITHOUT DATA PULSL FOR NOW ####
 @app.route('/')
 def index():
-    return render_template('landing.html')
+    return render_template('new.html')
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -206,6 +204,9 @@ def login():
             elif session['account_type'] == 'patient':
                 ## go to /details/{{row.mrn}} 
                 return redirect(url_for('get_patient_details', mrn=session['mrn']))
+            elif session['account_type'] == 'provider':
+                ## go to /details/{{row.mrn}} 
+                return redirect(url_for('get_patient_details', mrn=session['mrn']))
         else:
             msg = 'Incorrect username / password !'
     return render_template('/login.html', msg = msg)
@@ -221,6 +222,10 @@ def register():
         elif request.form['account_type'] == 'patient':
             # redirect to patient registration page
             return redirect(url_for('register_patient'))
+        elif request.form['account_type'] == 'provider':
+            # redirect to patient registration page
+            return redirect(url_for('register_provider'))
+
     elif request.method == 'POST':
         # Form is empty... (no POST data)
         msg = 'Please fill out the form!'
@@ -287,7 +292,6 @@ def register_patient():
         dob = request.form['dob']
         gender = request.form['gender']
         contact_mobile = request.form['contact_mobile']
-        contact_home = request.form['contact_home']
 
         ## Fields to capture patient conditions
         pt_conditions = request.form.getlist('conditions')
@@ -303,7 +307,7 @@ def register_patient():
             lastlogin = datetime.datetime.now()
             
             new_user = Users(username, password, email, account_type, mrn, datecreated, lastlogin)
-            new_patient = Patients(mrn, first_name, last_name, zip_code, dob, gender, contact_mobile, contact_home)
+            new_patient = Patients(mrn, first_name, last_name, zip_code, dob, gender, contact_mobile)
 
             db.session.add(new_user)
             db.session.commit()
@@ -324,7 +328,36 @@ def register_patient():
     return render_template('register_patient.html', msg=msg, conditions=db_conditions, medications=db_medications)
 
 
+@app.route('/register/provider', methods=['GET', 'POST'])
+def register_provider():
+    # Output message if something goes wrong...
+    msg = ''
+    # Check if "username", "password" and "email" POST requests exist (user submitted form)
+    if request.method == 'POST' and 'username' in request.form and 'password' in request.form and 'email' in request.form:
+        # Create variables for easy access
+        username = request.form['username']
+        password = request.form['password']
+        email = request.form['email']
 
+        account_type = 'provider'
+        mrn = None
+        ## check if email already exists
+        account = Users.query.filter_by(email=email).first()
+        if account:
+            msg = 'Account already exists !'   
+        else:
+            datecreated = datetime.datetime.now()
+            lastlogin = datetime.datetime.now()
+            new_user = Users(username, password, email, account_type, mrn, datecreated, lastlogin)
+            db.session.add(new_user)
+            db.session.commit()
+            msg = "You have successfully registered a PROVIDER account!"
+    elif request.method == 'POST':
+        # Form is empty... (no POST data)
+        msg = 'Please fill out the form!'
+    # Show registration form with message (if any)
+    return render_template('register_provider.html', msg=msg)
+    
 @app.route('/account')
 def account():
     # Check if user is loggedin

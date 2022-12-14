@@ -42,7 +42,6 @@
                         <th>MRN</th>
                         <th>First Name</th>
                         <th>Last Name</th>
-                        <th>Zip Code</th>
                         <th>Gender</th>
                         <th>Setting</th>
 
@@ -55,8 +54,7 @@
                         <td>{{row.mrn}}</td>
                         <td>{{row.first_name}}</td>
                         <td>{{row.last_name}}</td>
-                        <td>{{row.zip_code}} </td>
-                        <td>{{row.gender}}</td>
+                        <td>{{row.dob}}</td>
                         <td>
                             <a href="/update/{{row.mrn}}" class="btn btn-warning btn-xs" data-toggle="modal" data-target="#modaledit{{row.mrn}}">Edit</a>
                             <a href="/delete/{{row.mrn}}" class="btn btn-danger btn-xs" onclick="return confirm('Are You Sure To Delete ?')">Delete</a>
@@ -91,9 +89,21 @@
                                     <input type="text" class="form-control" name="last_name" value="{{row.last_name}}">
                                 </div>
                                 <div class="form-group">
+                                    <label>Zip Code:</label>
+                                    <input type="text" class="form-control" name="zip_code" value="{{row.zip_code}}">
+                                </div>
+                                <div class="form-group">
                                     <label>Gender:</label>
                                     <input type="text" class="form-control" name="gender" value="{{row.gender}}">
-                                </div> 
+                                </div>
+                                <div class="form-group">
+                                    <label>Username:</label>
+                                    <input type="text" class="form-control" name="username" value="{{row.username}}">
+                                </div>
+                                <div class="form-group">
+                                    <label>Email:</label>
+                                    <input type="text" class="form-control" name="email" value="{{row.email}}">
+                                </div>
                                 <div class="form-group">
                                     <button class="btn btn-primary" type="submit">Update</button>
                                 </div>
